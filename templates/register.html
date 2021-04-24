@@ -41,6 +41,15 @@
         {% endfor %}
     </p>
     <p>
+        {{ form.tg.label }}<br>
+        {{ form.tg(class="form-control") }}<br>
+        {% for error in form.tg.errors %}
+            <p class="alert alert-danger" role="alert">
+                {{ error }}
+            </p>
+        {% endfor %}
+    </p>
+    <p>
         {{ form.about.label }}<br>
         {{ form.about(class="form-control") }}<br>
         {% for error in form.about.errors %}

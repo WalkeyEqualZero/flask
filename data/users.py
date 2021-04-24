@@ -3,9 +3,10 @@ import sqlalchemy
 from .db_session import SqlAlchemyBase
 from sqlalchemy import orm
 from werkzeug.security import check_password_hash, generate_password_hash
+from flask_login import UserMixin
 
 
-class User(SqlAlchemyBase):
+class User(SqlAlchemyBase, UserMixin):
     __tablename__ = 'users'
 
     id = sqlalchemy.Column(sqlalchemy.Integer,
@@ -17,8 +18,10 @@ class User(SqlAlchemyBase):
     hashed_password = sqlalchemy.Column(sqlalchemy.String, nullable=True)
     created_date = sqlalchemy.Column(sqlalchemy.DateTime,
                                      default=datetime.datetime.now)
+    tg = sqlalchemy.Column(sqlalchemy.String, nullable=True)
 
     news = orm.relation("News", back_populates='user')
+    hubs = sqlalchemy.Column(sqlalchemy.String, default="[]")
 
     def set_password(self, password):
         self.hashed_password = generate_password_hash(password)

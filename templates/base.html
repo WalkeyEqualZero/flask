@@ -11,9 +11,16 @@
 </head>
 <body>
 <header>
-    <nav class="navbar navbar-light bg-light">
+    <nav class="navbar navbar-light bg-info">
         <a class="navbar-brand" href="index">Наше приложение</a>
-        <a class="navbar-brand" href="login">Вход</a>
+        {% if current_user.is_authenticated %}
+            <a class="navbar-brand" href="/logout">{{ current_user.name }}</a>
+        {% else %}
+            <p>
+                <a class="btn btn-warning " href="/register">Зарегистрироваться</a>
+                <a class="btn btn-danger " href="/login">Войти</a>
+            </p>
+        {% endif %}
     </nav>
 </header>
 <!-- Begin page content -->
