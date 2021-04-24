@@ -44,7 +44,7 @@ def hub(id):
     db_sess = db_session.create_session()
     if current_user.is_authenticated and id in eval(current_user.hubs):
         news = db_sess.query(News).filter(
-            (News.user == current_user) | (News.hub_id == id))
+            (News.user_id == current_user.id) | (News.hub_id == id))
     else:
         abort(404)
     return render_template("hub.html", news=news, id_hub=id, admin_id=db_sess.query(Hubs).filter_by(id=id).first().admin)
@@ -153,6 +153,7 @@ def add_quest(id):
         news.content = form.content.data
         news.is_private = form.is_private.data
         news.hub_id = id
+        news.user_id = form.user_id.data
         current_user.news.append(news)
         db_sess.merge(current_user)
         db_sess.commit()

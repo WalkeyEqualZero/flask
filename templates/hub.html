@@ -6,13 +6,14 @@
         <a href="/hub/{{ id_hub }}/quest" class="btn btn-secondary">Добавить новость</a>
     {% endif %}
 {% for item in news%}
+{% if current_user.is_authenticated and current_user.id == item.user_id %}
 <div class="col-md6 border rounded">
     <h2>{{item.title}}</h2>
     <div>
         {{item.content}}
     </div>
     <div>
-        Автор - {{item.user.name}}, Дата написания - {{item.created_date}}
+        Deadline - {{item.created_date}}
     </div>
     {% if current_user.is_authenticated and current_user.id == admin_id %}
         <div>
@@ -25,6 +26,6 @@
         </div>
     {% endif %}
 </div>
+{% endif %}
 {% endfor %}
-<img src="images/final_dragon.svg" height="184" width="240">
 {% endblock %}
