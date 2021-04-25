@@ -12,9 +12,9 @@
 <body>
 <header>
     <nav class="navbar navbar-light bg-info">
-        <a class="navbar-brand" href="index">Наше приложение</a>
+        <a class="navbar-brand" href="/">Наше приложение</a>
         {% if current_user.is_authenticated %}
-            <a class="navbar-brand" href="/logout">{{ current_user.name }}</a>
+            <a class="navbar-brand" href="/logout">{{ current_user.name }}: {{ current_user.id }}</a>
         {% else %}
             <p>
                 <a class="btn btn-warning " href="/register">Зарегистрироваться</a>

@@ -4,6 +4,7 @@ from data import db_session
 from data.users import User
 from data.news import News
 from data.hubs import Hubs
+from forms.hubs import HubsForm
 import datetime
 from forms.user import RegisterForm, EmailField, PasswordField, DataRequired, SubmitField
 from forms.news import NewsForm
@@ -30,11 +31,16 @@ class LoginForm(FlaskForm):
 @app.route('/index')
 def index():
     db_sess = db_session.create_session()
+    news = db_sess.query(Hubs)
     if current_user.is_authenticated:
-        news = db_sess.query(News).filter(
-            (News.user == current_user) | (News.is_private != True))
+        string = ''
+        hubs = eval(current_user.hubs)
+        for i in range(len(hubs)):
+            string += f'(Hubs.id == {hubs[i]}) | '
+        news = news.filter(eval(string[:-2]))
+        print(news)
     else:
-        news = db_sess.query(News).filter(News.is_private != True)
+        return render_template("unauthorized.html", news=news)
     return render_template("index.html", news=news)
 
 
@@ -42,12 +48,15 @@ def index():
 @login_required
 def hub(id):
     db_sess = db_session.create_session()
-    if current_user.is_authenticated and id in eval(current_user.hubs):
+    admin = db_sess.query(Hubs).filter_by(id=id).first().admin
+    if current_user.is_authenticated and id in eval(current_user.hubs) and current_user.id != admin:
         news = db_sess.query(News).filter(
-            (News.user_id == current_user.id) | (News.hub_id == id))
+            (News.id_user == current_user.id), (News.hub_id == id))
+    elif current_user.is_authenticated and id in eval(current_user.hubs) and current_user.id == admin:
+        news = db_sess.query(News).filter((News.hub_id == id))
     else:
         abort(404)
-    return render_template("hub.html", news=news, id_hub=id, admin_id=db_sess.query(Hubs).filter_by(id=id).first().admin)
+    return render_template("hub.html", news=news, id_hub=id, admin_id=admin)
 
 
 @app.route('/login', methods=['GET', 'POST'])
@@ -107,26 +116,28 @@ def edit_quest(id):
     form = NewsForm()
     if request.method == "GET":
         db_sess = db_session.create_session()
+        hub_id_news = db_sess.query(News).filter_by(id=id).first().hub_id
         news = db_sess.query(News).filter(News.id == id,
-                                          News.user == current_user
                                           ).first()
-        if news:
+        if db_sess.query(Hubs).filter_by(id=hub_id_news).first().admin == current_user.id:
             form.title.data = news.title
             form.content.data = news.content
             form.is_private.data = news.is_private
+            form.id_user.data = news.id_user
         else:
             abort(404)
     if form.validate_on_submit():
         db_sess = db_session.create_session()
+        hub_id_news = db_sess.query(News).filter_by(id=id).first().hub_id
         news = db_sess.query(News).filter(News.id == id,
-                                          News.user == current_user
                                           ).first()
-        if news:
+        if db_sess.query(Hubs).filter_by(id=hub_id_news).first().admin == current_user.id:
             news.title = form.title.data
             news.content = form.content.data
             news.is_private = form.is_private.data
+            news.id_user = form.id_user.data
             db_sess.commit()
-            return redirect('/')
+            return redirect(f'/hub/{hub_id_news}')
         else:
             abort(404)
     return render_template('news.html',
@@ -146,20 +157,24 @@ def logout():
 @login_required
 def add_quest(id):
     form = NewsForm()
-    if form.validate_on_submit():
-        db_sess = db_session.create_session()
-        news = News()
-        news.title = form.title.data
-        news.content = form.content.data
-        news.is_private = form.is_private.data
-        news.hub_id = id
-        news.user_id = form.user_id.data
-        current_user.news.append(news)
-        db_sess.merge(current_user)
-        db_sess.commit()
-        return redirect('/')
-    return render_template('news.html', title='Добавление новости',
-                           form=form)
+    db_sess = db_session.create_session()
+    hub_id_news = db_sess.query(News).filter_by(id=id).first().hub_id
+    if db_sess.query(Hubs).filter_by(id=hub_id_news).first().admin == current_user.id:
+        if form.validate_on_submit():
+            news = News()
+            news.title = form.title.data
+            news.content = form.content.data
+            news.is_private = form.is_private.data
+            news.hub_id = id
+            news.id_user = form.id_user.data
+            current_user.news.append(news)
+            db_sess.merge(current_user)
+            db_sess.commit()
+            return redirect(f'/hub/{hub_id_news}')
+        return render_template('news.html', title='Добавление новости',
+                               form=form)
+    else:
+        abort(404)
 
 
 @app.route('/quest_delete/<int:id>', methods=['GET', 'POST'])
@@ -169,18 +184,42 @@ def news_delete(id):
     news = db_sess.query(News).filter(News.id == id,
                                       News.user == current_user
                                       ).first()
+    hub_id_news = db_sess.query(News).filter_by(id=id).first().hub_id
     if news:
         db_sess.delete(news)
         db_sess.commit()
     else:
         abort(404)
-    return redirect('/')
+    return redirect(f'/hub/{hub_id_news}')
 
 
 @app.route('/images/<name>')
 def images(name):
     DIRECTORY_IMAGES = os.path.join(os.path.dirname(__file__), "templates/images")
     return send_file(os.path.join(DIRECTORY_IMAGES, name))
+
+
+@app.route('/new_hub',  methods=['GET', 'POST'])
+@login_required
+def add_hub():
+    form = NewsForm()
+    db_sess = db_session.create_session()
+    if current_user.is_authenticated:
+        if form.validate_on_submit():
+            news = News()
+            news.title = form.title.data
+            news.content = form.content.data
+            news.is_private = form.is_private.data
+            news.hub_id = id
+            news.id_user = form.id_user.data
+            current_user.news.append(news)
+            db_sess.merge(current_user)
+            db_sess.commit()
+            return redirect(f'/hub/{hub_id_news}')
+        return render_template('news.html', title='Добавление новости',
+                               form=form)
+    else:
+        abort(404)
 
 
 if __name__ == '__main__':
