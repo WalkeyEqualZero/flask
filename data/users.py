@@ -21,7 +21,8 @@ class User(SqlAlchemyBase, UserMixin):
     tg = sqlalchemy.Column(sqlalchemy.String, nullable=True)
 
     news = orm.relation("News", back_populates='user')
-    hubs = sqlalchemy.Column(sqlalchemy.String, default="[]")
+    hubs = orm.relation("Hubs", back_populates='user')
+    user_hubs = sqlalchemy.Column(sqlalchemy.String, default="[]")
 
     def set_password(self, password):
         self.hashed_password = generate_password_hash(password)

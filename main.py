@@ -34,7 +34,7 @@ def index():
     news = db_sess.query(Hubs)
     if current_user.is_authenticated:
         string = ''
-        hubs = eval(current_user.hubs)
+        hubs = eval(current_user.user_hubs)
         for i in range(len(hubs)):
             string += f'(Hubs.id == {hubs[i]}) | '
         news = news.filter(eval(string[:-2]))
@@ -49,10 +49,10 @@ def index():
 def hub(id):
     db_sess = db_session.create_session()
     admin = db_sess.query(Hubs).filter_by(id=id).first().admin
-    if current_user.is_authenticated and id in eval(current_user.hubs) and current_user.id != admin:
+    if current_user.is_authenticated and id in eval(current_user.user_hubs) and current_user.id != admin:
         news = db_sess.query(News).filter(
             (News.id_user == current_user.id), (News.hub_id == id))
-    elif current_user.is_authenticated and id in eval(current_user.hubs) and current_user.id == admin:
+    elif current_user.is_authenticated and id in eval(current_user.user_hubs) and current_user.id == admin:
         news = db_sess.query(News).filter((News.hub_id == id))
     else:
         abort(404)
@@ -122,7 +122,6 @@ def edit_quest(id):
         if db_sess.query(Hubs).filter_by(id=hub_id_news).first().admin == current_user.id:
             form.title.data = news.title
             form.content.data = news.content
-            form.is_private.data = news.is_private
             form.id_user.data = news.id_user
         else:
             abort(404)
@@ -134,7 +133,6 @@ def edit_quest(id):
         if db_sess.query(Hubs).filter_by(id=hub_id_news).first().admin == current_user.id:
             news.title = form.title.data
             news.content = form.content.data
-            news.is_private = form.is_private.data
             news.id_user = form.id_user.data
             db_sess.commit()
             return redirect(f'/hub/{hub_id_news}')
@@ -158,19 +156,17 @@ def logout():
 def add_quest(id):
     form = NewsForm()
     db_sess = db_session.create_session()
-    hub_id_news = db_sess.query(News).filter_by(id=id).first().hub_id
-    if db_sess.query(Hubs).filter_by(id=hub_id_news).first().admin == current_user.id:
+    if db_sess.query(Hubs).filter_by(id=id).first().admin == current_user.id:
         if form.validate_on_submit():
             news = News()
             news.title = form.title.data
             news.content = form.content.data
-            news.is_private = form.is_private.data
             news.hub_id = id
             news.id_user = form.id_user.data
             current_user.news.append(news)
             db_sess.merge(current_user)
             db_sess.commit()
-            return redirect(f'/hub/{hub_id_news}')
+            return redirect(f'/hub/{id}')
         return render_template('news.html', title='Добавление новости',
                                form=form)
     else:
@@ -202,21 +198,19 @@ def images(name):
 @app.route('/new_hub',  methods=['GET', 'POST'])
 @login_required
 def add_hub():
-    form = NewsForm()
+    form = HubsForm()
     db_sess = db_session.create_session()
     if current_user.is_authenticated:
         if form.validate_on_submit():
-            news = News()
-            news.title = form.title.data
-            news.content = form.content.data
-            news.is_private = form.is_private.data
-            news.hub_id = id
-            news.id_user = form.id_user.data
-            current_user.news.append(news)
+            hubs = Hubs()
+            hubs.name = form.name.data
+            hubs.admin = current_user.id
+            user_hubs = eval(current_user.user_hubs)
+            current_user.hubs.append(hubs)
             db_sess.merge(current_user)
             db_sess.commit()
-            return redirect(f'/hub/{hub_id_news}')
-        return render_template('news.html', title='Добавление новости',
+            return redirect('/')
+        return render_template('new_hub.html', title='Добавление новости',
                                form=form)
     else:
         abort(404)

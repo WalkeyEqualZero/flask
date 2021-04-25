@@ -16,8 +16,6 @@ class News(SqlAlchemyBase):
                                      default=datetime.datetime.now)
     hub_id = sqlalchemy.Column(sqlalchemy.String, nullable=True)
 
-    is_private = sqlalchemy.Column(sqlalchemy.Boolean, default=True)
-
     id_user = sqlalchemy.Column(sqlalchemy.String, nullable=True)
 
     user_id = sqlalchemy.Column(sqlalchemy.Integer,
