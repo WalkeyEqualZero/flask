@@ -11,5 +11,5 @@ class Hubs(SqlAlchemyBase):
     admin = sqlalchemy.Column(sqlalchemy.Integer,
                                 sqlalchemy.ForeignKey("users.id"))
     name = sqlalchemy.Column(sqlalchemy.String, nullable=True)
-    requests = sqlalchemy.Column(sqlalchemy.String, nullable=True)
+    requests = sqlalchemy.Column(sqlalchemy.String, nullable=True, default='[]')
     user = orm.relation('User')
