@@ -6,11 +6,19 @@
         <a href="/new_hub" class="btn btn-secondary">Создать хаб</a>
     {% endif %}
 <br>
-{% for item in news%}
-<div class="col-md6 border rounded">
-    <a href="/hub/{{ item.id }}" class="btn btn-warning">
-                {{item.name}}
-            </a>
-</div><br>
+<div class="container">
+  <div class="row">
+{% for item in news %}
+<div class="card col-lg-3" style="width: 18rem; margin: 5px;">
+  <div class="card-body">
+        <h5 class="card-title">{{ item.name }}</h5>
+        <p class="card-text">Some quick example text to build on the card title and make up the bulk of the card's content.</p>
+        <a href="/hub/{{ item.id }}" class="btn btn-primary">Зайти в хаб</a>
+        <a href="/hub_delete/{{ item.id }}" class="btn btn-danger">
+                    Удалить
+                </a>
+  </div>
+    {% set old_index = loop.index %}
+</div>
 {% endfor %}
 {% endblock %}

@@ -4,6 +4,7 @@
 <h1>Задания</h1>
 {% if current_user.is_authenticated and current_user.id == admin_id %}
         <a href="/hub/{{ id_hub }}/quest" class="btn btn-secondary">Добавить задание</a>
+        <a href="/hub/{{ id_hub }}/admin" class="btn btn-info">Запросы</a>
     {% endif %}
 {% for item in news%}
 <div class="col-md6 border rounded">

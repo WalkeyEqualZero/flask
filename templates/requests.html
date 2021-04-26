@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<h1>Запросы в Хаб</h1><br>
+
+<div class="container">
+  <div class="row">
+
+{% for item in users %}
+<div class="card col-lg-3" style="width: 18rem; margin: 5px;">
+  <div class="card-body">
+        <h5 class="card-title">{{ item.name }}</h5>
+        <p class="card-text">{{ item.about }}</p>
+        <a href="/hub/{{ id }}/accept/{{ item.id }}" class="btn btn-success">Принять</a>
+        <a href="/hub/{{ id }}/decline/{{ item.id }}" class="btn btn-danger">
+                    Отклонить
+                </a>
+  </div>
+</div></div></div>
+{% endfor %}
+{% endblock %}

@@ -35,10 +35,13 @@ def index():
     if current_user.is_authenticated:
         string = ''
         hubs = eval(current_user.user_hubs)
-        for i in range(len(hubs)):
-            string += f'(Hubs.id == {hubs[i]}) | '
-        news = news.filter(eval(string[:-2]))
-        print(news)
+        if hubs != []:
+            for i in range(len(hubs)):
+                string += f'(Hubs.id == {hubs[i]}) | '
+            news = news.filter(eval(string[:-2]))
+            print(news)
+        else:
+            news = news.filter((Hubs.id == 1), (Hubs.id == 2))
     else:
         return render_template("unauthorized.html", news=news)
     return render_template("index.html", news=news)
@@ -48,15 +51,20 @@ def index():
 @login_required
 def hub(id):
     db_sess = db_session.create_session()
-    admin = db_sess.query(Hubs).filter_by(id=id).first().admin
-    if current_user.is_authenticated and id in eval(current_user.user_hubs) and current_user.id != admin:
-        news = db_sess.query(News).filter(
-            (News.id_user == current_user.id), (News.hub_id == id))
-    elif current_user.is_authenticated and id in eval(current_user.user_hubs) and current_user.id == admin:
-        news = db_sess.query(News).filter((News.hub_id == id))
+    the_hub = db_sess.query(Hubs).filter_by(id=id).first()
+    if the_hub:
+        admin = db_sess.query(Hubs).filter_by(id=id).first().admin
+        if current_user.is_authenticated and id in eval(current_user.user_hubs) and current_user.id != admin:
+            news = db_sess.query(News).filter(
+                (News.id_user == current_user.id), (News.hub_id == id))
+        elif current_user.is_authenticated and id in eval(current_user.user_hubs) and current_user.id == admin:
+            news = db_sess.query(News).filter((News.hub_id == id))
+        else:
+            hub_name = db_sess.query(Hubs).filter_by(id=id).first().name
+            return render_template("request.html", hub_name=hub_name, id_hub=id)
+        return render_template("hub.html", news=news, id_hub=id, admin_id=admin)
     else:
         abort(404)
-    return render_template("hub.html", news=news, id_hub=id, admin_id=admin)
 
 
 @app.route('/login', methods=['GET', 'POST'])
@@ -139,7 +147,7 @@ def edit_quest(id):
         else:
             abort(404)
     return render_template('news.html',
-                           title='Редактирование новости',
+                           title='Редактирование задания',
                            form=form
                            )
 
@@ -205,13 +213,106 @@ def add_hub():
             hubs = Hubs()
             hubs.name = form.name.data
             hubs.admin = current_user.id
-            user_hubs = eval(current_user.user_hubs)
+            user_hubs = list(map(str, eval(current_user.user_hubs)))
             current_user.hubs.append(hubs)
             db_sess.merge(current_user)
+            db_sess.commit()
+            news = db_sess.query(Hubs).filter(Hubs.admin == current_user.id)
+            for el in news:
+                if el.id not in user_hubs:
+                    user_hubs.append(str(el.id))
+            user = db_sess.query(User).filter(User.id == current_user.id).first()
+            user.user_hubs = '[' + ', '.join(user_hubs) + ']'
             db_sess.commit()
             return redirect('/')
         return render_template('new_hub.html', title='Добавление новости',
                                form=form)
+    else:
+        abort(404)
+
+
+@app.route('/hub_delete/<int:id>', methods=['GET', 'POST'])
+@login_required
+def hub_delete(id):
+    db_sess = db_session.create_session()
+    news = db_sess.query(Hubs).filter(Hubs.id == id).first()
+    if news and news.admin == current_user.id:
+        db_sess.delete(news)
+        db_sess.commit()
+    else:
+        abort(404)
+    return redirect(f'/')
+
+
+@app.route('/hub/<int:id>/request',  methods=['GET', 'POST'])
+@login_required
+def post_request(id):
+    if id not in eval(current_user.user_hubs):
+        db_sess = db_session.create_session()
+        hub = db_sess.query(Hubs).filter(Hubs.id == id).first()
+        hub_requests = list(map(str, eval(hub.requests)))
+        hub_requests.append(str(current_user.id))
+        hub.requests = '[' + ', '.join(hub_requests) + ']'
+        print(hub_requests)
+        db_sess.commit()
+        return redirect('/')
+    else:
+        abort(404)
+
+
+@app.route('/hub/<int:id>/admin', methods=['GET', 'POST'])
+@login_required
+def hub_admin(id):
+    db_sess = db_session.create_session()
+    if db_sess.query(Hubs).filter_by(id=id).first().admin == current_user.id:
+        hub = db_sess.query(Hubs).filter(Hubs.id == id).first()
+        users = db_sess.query(User)
+        requests = list(map(str, eval(hub.requests)))
+        string = ''
+        if requests != []:
+            for i in range(len(requests)):
+                string += f'(User.id == {requests[i]}) | '
+            print(string)
+            users = users.filter(eval(string[:-2]))
+        else:
+            users = users.filter((Hubs.id == 1), (Hubs.id == 2))
+        return render_template("requests.html", users=users, id=id)
+    else:
+        abort(405)
+
+
+@app.route('/hub/<int:id>/decline/<int:user_id>',  methods=['GET', 'POST'])
+@login_required
+def delete_request(id, user_id):
+    db_sess = db_session.create_session()
+    if db_sess.query(Hubs).filter_by(id=id).first().admin == current_user.id:
+        hub = db_sess.query(Hubs).filter(Hubs.id == id).first()
+        hub_requests = list(map(str, eval(hub.requests)))
+        hub_requests.remove(str(user_id))
+        hub.requests = '[' + ', '.join(hub_requests) + ']'
+        print(hub_requests)
+        db_sess.commit()
+        return redirect('/')
+    else:
+        abort(404)
+
+
+@app.route('/hub/<int:id>/accept/<int:user_id>',  methods=['GET', 'POST'])
+@login_required
+def accept_request(id, user_id):
+    db_sess = db_session.create_session()
+    if db_sess.query(Hubs).filter_by(id=id).first().admin == current_user.id:
+        hub = db_sess.query(Hubs).filter(Hubs.id == id).first()
+        hub_requests = list(map(str, eval(hub.requests)))
+        hub_requests.remove(str(user_id))
+        hub.requests = '[' + ', '.join(hub_requests) + ']'
+        print(hub_requests)
+        user = db_sess.query(User).filter(User.id == user_id).first()
+        user_hubs = list(map(str, eval(hub.requests)))
+        user_hubs.append(str(id))
+        user.user_hubs = '[' + ', '.join(user_hubs) + ']'
+        db_sess.commit()
+        return redirect('/')
     else:
         abort(404)
 

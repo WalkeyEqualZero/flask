@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+
+{% block content %}
+<br>
+<h1>Сделать запрос о вступлении в хаб {{ hub_name }}?</h1><br>
+<br>
+<div class="col-md6 border rounded">
+    <a href="/hub/{{ id_hub }}/request" class="btn btn-success">
+                Да
+            </a>
+    <a href="/" class="btn btn-danger">
+        Нет
+    </a>
+</div><br>
+{% endblock %}
