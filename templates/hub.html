@@ -12,9 +12,6 @@
     <div>
         {{item.content}}
     </div>
-    <div>
-        Deadline - {{item.created_date}}
-    </div>
     {% if current_user.is_authenticated and current_user.id == admin_id %}
         <div>
             <a href="/quest/{{ item.id }}" class="btn btn-warning">
